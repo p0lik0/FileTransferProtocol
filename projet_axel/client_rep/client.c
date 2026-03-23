@@ -16,6 +16,9 @@ int main(int argc, char **argv)
     char *host, buf[MAXLINE];
     rio_t rio;
 
+    char commande[50] = ""; // chaine contenant le type de requette ecrit sur l'entreee 
+    char argument[100] = ""; // argument de la commande rentree
+
     if (argc != 3) {
         fprintf(stderr, "usage: %s <host> <port>\n", argv[0]);
         exit(0);
@@ -41,19 +44,70 @@ int main(int argc, char **argv)
 
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
         // Une fois que l'on reccupere la demande du client on cree l structure de requette pour creer la requette a envoyer
+        int n = sscanf(buf , "%s %s", commande, argument) ; 
+
+        if(n<1){
+            printf("Commande invalide , réesayer \n") ; 
+            continue ; 
+        }
+
+        request_t req; // initialise la commande a envoyée
+        memset(&req, 0, sizeof(request_t)); // Sécurité : on met tout à zéro
+
+        if(strcmp(commande, "get")==0){
+            req.type = GET ; 
+        }
+        else if (strcmp(commande ,  "put")==0){
+            req.type = PUT ;
+        }
+        else if(strcmp(commande,"ls")==0){
+            req.type = LS ; 
+        }
+        else if(strcmp(commande , "close")==0){
+            req.type = CLOSE ; 
+        }
+        else{
+            printf("Commande inconue \n") ; 
+        }
+
+        if(n==2) // copie le nom seulement s'il a été passé 
+        strcpy(req.nom,argument) ; // copie le nom du fichier demande ou envoye 
+        req.taille = sizeof(request_t) ; // taille de la requette 
 
 
 
+        Rio_writen(clientfd, &req, req.taille); // ecriture de la structure dans le canal de communication
 
+        // Gestion de la réponse du serveur
+        reponse_t rep ; 
+        while (Rio_readnb(&rio, &rep, sizeof(reponse_t)) > 0) {
+            if(rep.code_retour == 0){
+                printf("Transfer succesfully complete. \n") ; 
+                printf("%d bytes receives \n", sizeof(reponse_t)) ; 
+                printf("%s", rep.contenu) ; 
+            }
+            else{
+                switch (rep.code_retour)
+                {
+                case -1:
+                    printf("Le fichier demandé n'existe pas \n") ; 
+                    break;
 
+                case 1:
+                    printf("Erreur lors de l'ouverture du fichier \n") ; 
+                    break;
 
+                case 2:
+                    printf("Requette de format inconnue \n") ; 
+                    break;
+                
+                default:
+                    break;
+                }
 
+            }
 
-
-
-        Rio_writen(clientfd, buf, strlen(buf));
-        while (Rio_readlineb(&rio, buf, MAXLINE) > 0) {
-            Fputs(buf, stdout);
+            //Fputs(buf, stdout);
         }
         /* else { /* the server has prematurely closed the connection 
             break;

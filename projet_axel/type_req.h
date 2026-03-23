@@ -2,7 +2,7 @@
 #define TYPE_REQ_H
 
 /* Type énumeré des requettes possibles */
-typedef enum typereq_t { GET , PUT , LS } typereq_t ; 
+typedef enum typereq_t { GET , PUT , LS , CLOSE } typereq_t ; 
 
 /* Structure de données des requettes envoyées par le client */
 typedef struct request_t{
