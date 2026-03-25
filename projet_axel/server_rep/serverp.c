@@ -56,7 +56,7 @@ void child_main(int listenfd) {
 int main(int argc, char **argv)
 {
 
-    Signal(SIGINT,handler_server) ; // Traitant du signal de terminaison chargé de fermer propement le serveur
+    //Signal(SIGINT,handler_server) ; // Traitant du signal de terminaison chargé de fermer propement le serveur
 
     int listenfd, port;
 
@@ -77,8 +77,25 @@ int main(int argc, char **argv)
         }
     }
 
-    // Le père ne fait plus rien, il attend juste la fin de ses fils
-    // Quel père fénéant
-    while(1) pause(); 
+    char cmd[30];
+    printf("Tapez 'close' pour arrêter le serveur proprement.\n");
+
+    while (1) {
+        if (fgets(cmd, sizeof(cmd), stdin) == NULL) break;
+    
+        if (strncmp(cmd, "close", 5) == 0) {
+            break; 
+        }
+    }
+
+    //Envoyer le signal au groupe (0 = tout mon groupe)
+    printf("[Père] Envoi du signal d'arrêt aux fils...\n");
+    kill(0, SIGINT); 
+
+    // Attendre VRAIMENT tous les fils
+    // wait(NULL) renvoie -1 quand il n'y a plus de fils à attendre
+    while (wait(NULL) > 0); 
+
+    printf("[Père] Tous les fils sont terminés. Fermeture.\n");
     exit(0);
-}
+} 

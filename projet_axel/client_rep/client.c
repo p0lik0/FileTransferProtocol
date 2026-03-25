@@ -1,15 +1,10 @@
 /*
- * echoclient.c - An echo client
+ * client.c - A c programm simulating a client in network communication
  */
 #include "csapp.h"
 #include "type_req.h"
 
 
-/* CODER LE CLIENT POUR QU'IL ENVOIS UN CONTENU DE TYPE REQUETTE EN FONCTION DE CE QUI EST RENTRE EN LIGNE DE
-COMMANDE COMPARER LE PREMIER AVEC GET PUT OU LS ET LA SUITE PUIS CREER UNE STRUCTURE EN 
-CONSEQUENCE A ENVOYER */
-
-/* GERER LA STRUCTURE REPONSE POUR SAVOIR COMMENT INTERPRETTER LES REPONSES DU SERVEUR */
 int main(int argc, char **argv)
 {
     int clientfd, port;
@@ -75,8 +70,7 @@ int main(int argc, char **argv)
         req.taille = sizeof(request_t) ; // taille de la requette 
 
 
-
-        Rio_writen(clientfd, &req, req.taille); // ecriture de la structure dans le canal de communication
+        Rio_writen(clientfd, &req, req.taille); // ecriture de la requette dans le canal de communication
 
         // Gestion de la réponse du serveur
         reponse_t rep ; 
@@ -84,7 +78,23 @@ int main(int argc, char **argv)
             if(rep.code_retour == 0){
                 printf("Transfer succesfully complete. \n") ; 
                 printf("%d bytes receives \n", sizeof(reponse_t)) ; 
-                printf("%s", rep.contenu) ; 
+
+                // creation du fichier recu du serveur
+                int fd_file = open((char *)rep.nom, O_WRONLY| O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) ;
+                if(fd_file == -1){
+                    perror("Errer lors de la création du fichier \n") ; 
+                }
+                else{
+                    if(write(fd_file,rep.contenu,rep.taille_contenu) != rep.taille_contenu){
+                        perror("Erreur lors de l'écriture dans le fichier \n") ; 
+                    }
+                    else{
+                        printf("file %s succesfull create \n",(char *)rep.nom) ; 
+                    }
+                } 
+                close(fd_file) ; 
+
+                //printf("%s", rep.contenu) ; 
             }
             else{
                 switch (rep.code_retour)
@@ -98,7 +108,7 @@ int main(int argc, char **argv)
                     break;
 
                 case 2:
-                    printf("Requette de format inconnue \n") ; 
+                    printf("La taille de la requette n'est pas un  int \n") ; 
                     break;
                 
                 default:
@@ -106,7 +116,6 @@ int main(int argc, char **argv)
                 }
 
             }
-
             //Fputs(buf, stdout);
         }
         /* else { /* the server has prematurely closed the connection 

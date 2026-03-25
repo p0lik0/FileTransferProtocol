@@ -1,5 +1,5 @@
 /*
- * echo - read and echo text lines until client closes connection
+ * service.c - permit to provide the service asked by client
  */
 #include "csapp.h"
 #include "type_req.h"
@@ -20,6 +20,7 @@ void echec(int connfd, int i) {
     // Pas besoin de toucher à rep.nom ou rep.contenu, ils sont déjà pleins de zéros
     
     Rio_writen(connfd, &rep, sizeof(reponse_t)); 
+    printf("[Fils %d] requette traite\n", getpid()) ; 
 }
 
 
@@ -55,14 +56,17 @@ void get_file(int connfd , request_t req){
     memset(rep.contenu,0,MAXLINE) ; 
 
     // Lecture du contenu du fichier passe en argument dans le champ contenu de reponse_t
-    rio_t rio ; 
-    Rio_readinitb(&rio,fd) ; 
-    ssize_t n = Rio_readnb(&rio,rep.contenu,MAXLINE) ; 
+    ssize_t n = read(fd,rep.contenu,MAXLINE) ; 
+    if(n<0){
+        echec(connfd , 1); // erreur lors de l'ouverture du fichier
+        return ; 
+    }
     rep.taille_contenu = n ; 
     
     // Renvois du fichier par le canal de communication
     Rio_writen(connfd,&rep,sizeof(reponse_t)) ; 
     
+    printf("[Fils %d] requêtte traité\n",getpid()) ; 
     close(fd) ; 
 }
 
@@ -85,38 +89,42 @@ void gestion(int connfd) {
 
     // Reccuperation de la structure de la requette transmis par le client
 
-    // lecture de la taille de la structure requette
-    if(Rio_readnb(&rio,&req.taille,sizeof(int)) != sizeof(int)){
-        echec(connfd,2) ; // Si la taille du premier champ de la requette ne correspond pas a un int echec
-        return ; }
-
-    // Lecture du reste la structure requette
-    Rio_readnb(&rio , (char *)&req + sizeof(int) , req.taille - sizeof(int)) ; 
+    while(1){
+        printf("[Fils %d] Attente d'une requête...\n", getpid()) ; 
 
 
-    /////////////////////////////////////////////////////////////////////////
+        // lecture de la taille de la requette
+        if(Rio_readnb(&rio,&req.taille,sizeof(int)) != sizeof(int)){
+            echec(connfd,2) ; // Si la taille du premier champ de la requette ne correspond pas a un int echec
+            return ; }
 
-    // On analyse le type de requette et en fonction on effectue le service correspondant
-    switch (req.type)
-    {
-    case GET:
-        get_file(connfd , req) ; 
-        break;
+        // Lecture du reste la structure requette
+        Rio_readnb(&rio , (char *)&req + sizeof(int) , req.taille - sizeof(int)) ; 
 
-    case PUT:
-        put_file(connfd, req) ; 
-        break; 
 
-    case LS:
-        do_ls(connfd , req) ; 
-        break ;
+        // On analyse le type de requette et en fonction on effectue le service correspondant
+        switch (req.type)
+        {
+        case GET:
+            get_file(connfd , req) ; 
+            break;
 
-    case CLOSE:
-        close(connfd) ; // s'il y'a une demande de fin de connexion du client
-        break ;
+        case PUT:
+            put_file(connfd, req) ; 
+            break; 
 
-    default:
-        // echec(connfd, 0) ; // Code de requette incorrect
-        break;
+        case LS:
+            do_ls(connfd , req) ; 
+            break ;
+
+        case CLOSE:
+            printf("Fermeture demandé par le client %d \n", getpid()) ; 
+            close(connfd) ; // s'il y'a une demande de fin de connexion du client
+            return ;
+
+        default:
+            // echec(connfd, 0) ; // Code de requette incorrect
+            break;
+        }
     }
 }
