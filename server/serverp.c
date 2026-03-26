@@ -8,33 +8,21 @@
 
 #define MAX_NAME_LEN 256
 #define PORT 2121
+#define NB_PROC 5// Taille du pool (nombre de fils)
 
-/* Handler de ???????????????  */
-/*void handler(){
 
-    int pid ; 
-    int status = 0 ; 
-
-    while((pid=waitpid(-1,&status,WNOHANG))>0){
-        if((pid==-1) && errno!=ECHILD) printf("wait pid error\n") ; 
-    }
-}*/
-
+int tab_pid[NB_PROC] ; // table des pid des procs
 
 /* Handler de signla de terminaison du server */
 void handler_server(){
-    pid_t pgid = getgid() ; // reccupere le pid du processus pere du serveur
-    Kill(-pgid,SIGINT) ; // signal de terminaison envoyé au groupe pgid 
-    unix_error("Erreur de fermeture du server \n") ; 
+
+    for(int i=0 ; i<NB_PROC ; i++){
+        Kill(tab_pid[i],SIGINT) ; // signal de terminaison envoyé au groupe pgid 
+        printf("[Fils %d tue avec succes \n]",tab_pid[i]) ; 
+    }
+    
+    exit(0) ; 
 }
-
-/*void echo(int connfd);*/
-
-/* 
- * Note that this code only works with IPv4 addresses
- * (IPv6 is not supported)
- */
-#define NB_PROC 5// Taille du pool (nombre de fils)
 
 
 /* Proccedure TCP que tous les fils executent */
@@ -46,6 +34,7 @@ void child_main(int listenfd) {
     clientlen = sizeof(clientaddr);
 
     while (1) {
+        printf("Boucle \n") ; 
         // TOUS les fils dorment ici. Le noyau en réveille un seul par client.
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
         printf("[Fils %d] Je traite une connexion\n", getpid());
@@ -57,7 +46,7 @@ void child_main(int listenfd) {
 int main(int argc, char **argv)
 {
 
-    //Signal(SIGINT,handler_server) ; // Traitant du signal de terminaison chargé de fermer propement le serveur
+    Signal(SIGINT,handler_server) ; // Traitant du signal de terminaison chargé de fermer propement le serveur
 
     int listenfd, port;
 
@@ -73,8 +62,9 @@ int main(int argc, char **argv)
     for (int i = 0; i < NB_PROC; i++) {
         if (Fork() == 0) { 
             // --- CODE DES FILS ---
+            tab_pid[i] = getpid() ; 
             child_main(listenfd); // Chaque fils part dans sa boucle infinie
-            exit(0); 
+            //exit(0); 
         }
     }
 

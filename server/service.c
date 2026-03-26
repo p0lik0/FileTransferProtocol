@@ -3,6 +3,7 @@
  */
 #include "csapp.h"
 #include "type_req.h"
+#include <sys/stat.h>
 
 
 // Fonction d'echec qui renvois une reponse d'echec en precisant pourquoi , i le code d'erreur correspodant le type reste a definir voir dans le code les differents appels a echec et les parametre pour savoir a quoi correspond et quelle message envoye
@@ -27,6 +28,12 @@ void echec(int connfd, int i) {
 // Fonction GET envois le fichier demande par le client ou une erreur s'il ne se trouve pas dans le rep
 void get_file(int connfd , request_t req){
 
+
+    struct stat file_status; 
+    if (stat(req.nom,&file_status)<0){
+        printf("Erreur de stat sur le fichier %s \n", req.nom) ; 
+    }
+        
     reponse_t rep ; 
 
     int fd = open(req.nom,O_RDONLY) ; // ouverture du fichier demande
@@ -49,22 +56,19 @@ void get_file(int connfd , request_t req){
     // Si le fichier existe bien code de retour 0
     rep.code_retour = 0 ; 
 
-    // Reaffecation du nom du fichier renvoye
-    strncpy((char *)rep.nom, (char *)req.nom , 100) ; // copie le nom de la requette comme nom de la reponse
-
-    // On nettois rep.contenu pour pas qu'il contienne des bits aleatoire qui n'ont rien a voir avec le contenu que va y ecrire 
-    memset(rep.contenu,0,MAXLINE) ; 
-
-    // Lecture du contenu du fichier passe en argument dans le champ contenu de reponse_t
-    ssize_t n = read(fd,rep.contenu,MAXLINE) ; 
-    if(n<0){
-        echec(connfd , 1); // erreur lors de l'ouverture du fichier
-        return ; 
-    }
-    rep.taille_contenu = n ; 
+    rep.taille_contenu = file_status.st_size ; 
     
-    // Renvois du fichier par le canal de communication
+    // Renvois du code de retour et de la taille du fichier
     Rio_writen(connfd,&rep,sizeof(reponse_t)) ; 
+
+    //char buffer[MAXLINE] ; // buffer de lecture du fichier a envoye
+
+    int n ; bloc b ; 
+
+    while((n = read(fd,b.buffer_bloc,TAILLE_BUFFER))>0){
+        b.taille_bloc = htons(n) ; // host to netxork conversion for endian type
+        Rio_writen(connfd,&b,sizeof(bloc)) ; 
+    }
     
     printf("[Fils %d] requêtte traité\n",getpid()) ; 
     close(fd) ; 
@@ -101,7 +105,7 @@ void gestion(int connfd) {
         Rio_readnb(&rio , &req , sizeof(request_t));
 
         // On analyse le type de requette et en fonction on effectue le service correspondant
-        switch (req.type)
+        switch (ntohs(req.type))
         {
         case GET:
             get_file(connfd , req) ; 
@@ -116,7 +120,7 @@ void gestion(int connfd) {
             break ;
 
         case CLOSE:
-            printf("Fermeture demandé par le client %d \n", getpid()) ; 
+            printf("[Fils %d] Fermeture demandé par le client\n", getpid()) ; 
             close(connfd) ; // s'il y'a une demande de fin de connexion du client
             return ;
 

@@ -27,6 +27,7 @@ int main(int argc, char **argv)
      * to obtain the IP address.
      */
     clientfd = Open_clientfd(host, port);
+    if(clientfd < 0) printf("Erreur de connexion \n") ; 
     
     /*
      * At this stage, the connection is established between the client
@@ -50,16 +51,16 @@ int main(int argc, char **argv)
         memset(&req, 0, sizeof(request_t)); // Sécurité : on met tout à zéro
 
         if(strcmp(commande, "get")==0){
-            req.type = GET ; 
+            req.type = htons(GET) ; 
         }
         else if (strcmp(commande ,  "put")==0){
-            req.type = PUT ;
+            req.type = htons(PUT) ;
         }
         else if(strcmp(commande,"ls")==0){
-            req.type = LS ; 
+            req.type = htons(LS) ; 
         }
-        else if(strcmp(commande , "close")==0){
-            req.type = CLOSE ; 
+        else if(strcmp(commande , "bye")==0){
+            req.type = htons(CLOSE) ; 
         }
         else{
             printf("Commande inconue \n") ; 
@@ -73,53 +74,49 @@ int main(int argc, char **argv)
 
         // Rio_writen(clientfd, &req, req.taille); // ecriture de la requette dans le canal de communication
         Rio_writen(clientfd, &req, sizeof(request_t));
+        printf("On passe icci \n") ; 
 
         // Gestion de la réponse du serveur
         reponse_t rep ; 
-        // while (Rio_readnb(&rio, &rep, sizeof(reponse_t)) > 0) {
-            Rio_readnb(&rio, &rep, sizeof(reponse_t));
-            if(rep.code_retour == 0){
-                printf("Transfer succesfully complete. \n") ; 
-                printf("%ld bytes receives \n", sizeof(reponse_t)) ; 
 
-                // creation du fichier recu du serveur
+        Rio_readnb(&rio, &rep, sizeof(reponse_t));
+        if(rep.code_retour == 0){
 
-                int fd_file = open(rep.nom, O_WRONLY| O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) ;
-                if(fd_file == -1){
-                    perror("Errer lors de la création du fichier \n") ; 
-                }
-                else{
-                    if(write(fd_file,rep.contenu,rep.taille_contenu) != rep.taille_contenu){
-                        perror("Erreur lors de l'écriture dans le fichier \n") ; 
-                    }
-                    else{
-                        printf("file %s succesfull create \n",rep.nom) ; 
-                    }
-                } 
-                close(fd_file) ; 
-
-                //printf("%s", rep.contenu) ; 
+            // ouverture du fichier
+            int fd_file = open(req.nom, O_WRONLY| O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) ;
+            if(fd_file == -1){
+                perror("Errer lors de la création du fichier \n") ; 
             }
-            else{
-                switch (rep.code_retour)
-                {
-                case -1:
-                    printf("Le fichier %s demandé n'existe pas \n", rep.nom) ; 
-                    break;
+            
+            int nb_blocs = (rep.taille_contenu % TAILLE_BUFFER ==0)? 
+                            (rep.taille_contenu /TAILLE_BUFFER ): ((rep.taille_contenu / TAILLE_BUFFER)+1); // nombre de blocs
 
-                case 1:
-                    printf("Erreur lors de l'ouverture du fichier \n") ; 
-                    break;
+            int count_bloc = 0 ; bloc b ; 
+            while(Rio_readnb(&rio,&b,sizeof(bloc)) && count_bloc < nb_blocs){
+                write(fd_file,b.buffer_bloc,ntohs(b.taille_bloc)) ; // ecrid le contenu du bloc avec la taille donne par le serveur
+                count_bloc ++ ; 
+            } // lecture du bloc
 
-                case 2:
-                    printf("La taille de la requette n'est pas un  int \n") ; 
-                    break;
-                
-                default:
-                    break;
-                }
+            close(fd_file) ; 
+            printf("Transfer successful completed \n ");
+            printf("File %s created \n",req.nom) ; 
 
+        }
+        else{
+            switch (rep.code_retour)
+            {
+            case -1:
+                printf("Le fichier %s demandé n'existe pas \n", req.nom) ; 
+                break;
+
+            case 1:
+                printf("Erreur lors de l'ouverture du fichier \n") ; 
+                break;
+            
+            default:
+                break;
             }
+        }
             //Fputs(buf, stdout);
         // }
         /* else { // the server has prematurely closed the connection 
