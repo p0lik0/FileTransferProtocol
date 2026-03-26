@@ -39,7 +39,9 @@ int main(int argc, char **argv)
     Rio_readinitb(&rio, clientfd);
 
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
-        // Une fois que l'on reccupere la demande du client on cree l structure de requette pour creer la requette a envoyer
+        // Une fois que l'on reccupere la demande du client on cree la structure de la requette a envoyer
+
+        /*                                                  ENVOIS DE LA REQUETTE                                                            */
         int n = sscanf(buf , "%s %s", commande, argument) ; 
 
         if(n<1){
@@ -73,10 +75,9 @@ int main(int argc, char **argv)
 
 
         // Rio_writen(clientfd, &req, req.taille); // ecriture de la requette dans le canal de communication
-        Rio_writen(clientfd, &req, sizeof(request_t));
-        printf("On passe icci \n") ; 
+        Rio_writen(clientfd, &req, sizeof(request_t)); 
 
-        // Gestion de la réponse du serveur
+        /*                                             GESTION DE LA REPONSE DU SERVEUR                                                  */
         reponse_t rep ; 
 
         Rio_readnb(&rio, &rep, sizeof(reponse_t));
