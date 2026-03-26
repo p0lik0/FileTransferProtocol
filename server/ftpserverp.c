@@ -9,6 +9,7 @@
 #define PORT 2121
 
 #include <signal.h>
+#include "request.h"
 
 int tab_pid[NPROC];
 
@@ -19,8 +20,7 @@ void handler(int sig) {
     exit(0);
 }
 
-void echo(int connfd);
-
+int get_filename(int connfd, char *filename);
 /* 
  * Note that this code only works with IPv4 addresses
  * (IPv6 is not supported)
@@ -40,7 +40,6 @@ int main(int argc, char **argv)
     listenfd = Open_listenfd(port);
     Signal(SIGINT, handler);
 
-    int tab_pid[NPROC];
     for(int i=0; i<NPROC; i++){
         if((tab_pid[i]=Fork())==0) break;
     }
@@ -57,10 +56,36 @@ int main(int argc, char **argv)
         Inet_ntop(AF_INET, &clientaddr.sin_addr, client_ip_string,
                   INET_ADDRSTRLEN);
         
-        printf("server connected to %s (%s)\n", client_hostname,
-               client_ip_string);
+        printf("server connected to %s (%s)\n", client_hostname, client_ip_string);
 
-        echo(connfd);
+        // Reception d'une requete
+        char data[MAXLINE];
+        typereq_t req =  get_request(connfd, data);
+        switch(req){
+            case GET:
+
+                int fd = open(data,O_RDONLY,0);
+
+                if(fd<0){
+                    printf("File %s not found\n", data);
+                    Close(connfd);
+                    exit(0);
+                }
+
+                char buf[MAXLINE];
+                ssize_t n;
+
+                while ((n = read(fd, buf, MAXLINE)) > 0) {
+                    Rio_writen(connfd, buf, n);
+                }
+
+                printf("File %s was sent\n",data);
+                Close(fd);
+                break;
+            default:
+                printf("Command is not found. \nUsage : GET <filename>\n");
+        }
+
         Close(connfd);
     }
     exit(0);
