@@ -31,4 +31,4 @@ all: $(PROGS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 	
 clean:
-	rm -f $(PROGS) ./server/*.o ./structures/*.o
+	rm -f $(PROGS) ./server/*.o ./structures/*.o 

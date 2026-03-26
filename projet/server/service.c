@@ -29,13 +29,9 @@ void get_file(int connfd , request_t req){
 
     reponse_t rep ; 
 
-    char filename[110];
-    strcpy(filename, "./server/");
-    strcat(filename, req.nom);
+    int fd = open(req.nom,O_RDONLY) ; // ouverture du fichier demande
 
-    int fd = open(filename,O_RDONLY) ; // ouverture du fichier demande
-
-    // Dans le cas ou une erreur se produit lors de l'ouverture du fichier
+    // Dans le cas ou une err./servereur se produit lors de l'ouverture du fichier
     if(fd == -1){
         if(errno == ENOENT){
             echec(connfd,-1) ; // le fichier n'existe pas
