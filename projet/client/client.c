@@ -83,11 +83,8 @@ int main(int argc, char **argv)
                 printf("%ld bytes receives \n", sizeof(reponse_t)) ; 
 
                 // creation du fichier recu du serveur
-                char filename[110];
-                strcpy(filename, "./client/");
-                strcat(filename,rep.nom);
 
-                int fd_file = open(filename, O_WRONLY| O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) ;
+                int fd_file = open(rep.nom, O_WRONLY| O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR) ;
                 if(fd_file == -1){
                     perror("Errer lors de la création du fichier \n") ; 
                 }
