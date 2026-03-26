@@ -3,7 +3,7 @@
  */
 #include "csapp.h"
 #include "type_req.h"
-#include "requetes.h"
+#include "gestion_client.h"
 
 int main(int argc, char **argv)
 {
@@ -49,31 +49,30 @@ int main(int argc, char **argv)
             continue ; 
         }
 
-        request_t req = compose_requete(commande, argument);
-        Rio_writen(clientfd, &req, sizeof(request_t)); 
+        request_t req ;
+        int r = compose_requete(commande, argument,&req,n);
+        if(r==0){
+            // Envoi de la requette dans le socket
+            Rio_writen(clientfd, &req, sizeof(request_t)); 
 
-        switch(req.type){
-            case GET:
-                get_request();
-                break;
-            case CLOSE:
-                close_request();
-                break;
+            // Reponse gestion
+            reponse_t rep ; 
+            Rio_readnb(&rio, &rep, sizeof(reponse_t));
+
+            switch(req.type){
+                case GET:
+                    gestion_get(rep,req.nom,&rio);
+                    break;
+                case CLOSE:
+                    Close(clientfd);
+                    exit(0);
+            }
+        }
+        else if(r==-1){
+            printf("Absence d'arguments (nom de fichier)\n") ; 
         }
         else{
-            switch (rep.code_retour)
-            {
-            case -1:
-                printf("Le fichier %s demandé n'existe pas \n", req.nom) ; 
-                break;
-
-            case 1:
-                printf("Erreur lors de l'ouverture du fichier \n") ; 
-                break;
-            
-            default:
-                break;
-            }
+            printf("Commande inconnue \n") ; 
         }
 
     }

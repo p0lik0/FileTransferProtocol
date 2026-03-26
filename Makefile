@@ -15,12 +15,11 @@ LDFLAGS =
 #LIBS += -lsocket -lnsl -lrt
 LIBS += -lpthread
 
-INCLUDE = structures/csapp.h structures/type_req.h server/service.h
-OBJS = structures/csapp.o server/service.o
+INCLUDE = structures/csapp.h structures/type_req.h server/service.h client/gestion_client.h
+OBJS = structures/csapp.o server/service.o client/gestion_client.o
 INCLDIR = -Istructures
 
 PROGS = ./server/serverp ./client/client 
-
 
 all: $(PROGS)
 
@@ -31,4 +30,4 @@ all: $(PROGS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 	
 clean:
-	rm -f $(PROGS) ./server/*.o ./structures/*.o 
+	rm -f $(PROGS) ./server/*.o ./structures/*.o ./client/*.o

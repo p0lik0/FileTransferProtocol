@@ -17,7 +17,7 @@
 void handler_server(){
 
     // handler redefini sur le gestionnaire par defaut
-    signal(SIGINT, SIG_IGN); 
+    //signal(SIGINT, SIG_IGN); 
 
     printf("\n[Père %d] Arrêt programmé. Signal envoyé au pool...\n", getpid());
     kill(0, SIGINT);
@@ -33,7 +33,7 @@ void handler_server(){
 /* Proccedure TCP que tous les fils executent */
 void child_main(int listenfd) {
 
-    signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
+    //signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
 
     int connfd;
     socklen_t clientlen;
@@ -53,7 +53,7 @@ void child_main(int listenfd) {
 int main(int argc, char **argv)
 {
 
-    Signal(SIGINT,handler_server) ; // Traitant du signal de terminaison chargé de fermer propement le serveur
+     // Traitant du signal de terminaison chargé de fermer propement le serveur
 
     int listenfd, port;
 
@@ -74,6 +74,7 @@ int main(int argc, char **argv)
             //exit(0); 
         }
     }
+    Signal(SIGINT,handler_server) ;
 
     while (1){
         pause() ; // attente active pour maintenir le pere en vie
