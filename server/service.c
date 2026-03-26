@@ -31,7 +31,8 @@ void get_file(int connfd , request_t req){
 
     struct stat file_status; 
     if (stat(req.nom,&file_status)<0){
-        printf("Erreur de stat sur le fichier %s \n", req.nom) ; 
+        printf("Erreur de stat sur le fichier %s :", req.nom) ; 
+        perror("");
     }
         
     reponse_t rep ; 
