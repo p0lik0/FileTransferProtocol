@@ -4,6 +4,7 @@
 #include "csapp.h"
 #include "type_req.h"
 #include <sys/stat.h>
+#include <time.h>
 
 
 // Fonction d'echec qui renvois une reponse d'echec en precisant pourquoi , i le code d'erreur correspodant le type reste a definir voir dans le code les differents appels a echec et les parametre pour savoir a quoi correspond et quelle message envoye
@@ -28,11 +29,11 @@ void echec(int connfd, int i) {
 // Fonction GET envois le fichier demande par le client ou une erreur s'il ne se trouve pas dans le rep
 void get_file(int connfd , request_t req){
 
+    Signal(SIGPIPE, SIG_IGN);
 
     struct stat file_status; 
     if (stat(req.nom,&file_status)<0){
-        printf("Erreur de stat sur le fichier %s :", req.nom) ; 
-        perror("");
+        perror("Erreur de stat() sur le fichier");
     }
         
     reponse_t rep ; 
@@ -50,29 +51,32 @@ void get_file(int connfd , request_t req){
         return ; 
     }
 
-
-    // taille de la structure 
-    // rep.taille = sizeof(reponse_t) ; 
-
     // Si le fichier existe bien code de retour 0
     rep.code_retour = 0 ; 
 
-    rep.taille_contenu = file_status.st_size ; 
+    rep.taille_contenu = htons(file_status.st_size); 
     
     // Renvois du code de retour et de la taille du fichier
     Rio_writen(connfd,&rep,sizeof(reponse_t)) ; 
 
-    //char buffer[MAXLINE] ; // buffer de lecture du fichier a envoye
-
     int n ; bloc b ; 
 
+    int offset = ntohs(req.offset);
+    if(offset>0){
+        lseek(fd, offset, SEEK_SET);
+    }
+
     while((n = read(fd,b.buffer_bloc,TAILLE_BUFFER))>0){
-        b.taille_bloc = htons(n) ; // host to netxork conversion for endian type
-        Rio_writen(connfd,&b,sizeof(bloc)) ; 
+        b.taille_bloc = htons(n) ; // host to netxork conversion for endian type 
+        if(rio_writen(connfd,&b,sizeof(bloc))<0){
+            printf("[Fils %d] Connexion avec client interrompu\n", getpid());
+            Close(fd);
+            Close(connfd);
+        }
     }
     
     printf("[Fils %d] requêtte traité\n",getpid()) ; 
-    close(fd) ; 
+    Close(fd) ; 
 }
 
 void put_file(int connfd , request_t req){
@@ -95,14 +99,7 @@ void gestion(int connfd) {
     while(1){
         printf("[Fils %d] Attente d'une requête...\n", getpid()) ; 
 
-
-        // lecture de la taille de la requette
-        // if(Rio_readnb(&rio,&req.taille,sizeof(int)) != sizeof(int)){
-        //     echec(connfd,2) ; // Si la taille du premier champ de la requette ne correspond pas a un int echec
-        //     return ; }
-
         // Lecture du reste la structure requette
-        // Rio_readnb(&rio , (char *)&req + sizeof(int) , req.taille - sizeof(int)) ; 
         Rio_readnb(&rio , &req , sizeof(request_t));
 
         // On analyse le type de requette et en fonction on effectue le service correspondant
