@@ -7,7 +7,7 @@
 #include "service.h"
 
 #define MAX_NAME_LEN 256
-#define PORT 2121
+#define PORT 8080
 #define NB_PROC 5// Taille du pool (nombre de fils)
 
 
