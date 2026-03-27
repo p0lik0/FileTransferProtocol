@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
             switch(ntohs(req.type)){
                 case GET:
-                    gestion_get(rep,req.nom,&rio);
+                    gestion_get(rep,req.nom,&rio,clientfd);
                     break;
                 case CLOSE: 
                     Close(clientfd);

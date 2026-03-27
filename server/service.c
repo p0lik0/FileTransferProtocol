@@ -4,6 +4,7 @@
 #include "csapp.h"
 #include "type_req.h"
 #include <sys/stat.h>
+#include <time.h>
 
 
 // Fonction d'echec qui renvois une reponse d'echec en precisant pourquoi , i le code d'erreur correspodant le type reste a definir voir dans le code les differents appels a echec et les parametre pour savoir a quoi correspond et quelle message envoye
@@ -66,13 +67,29 @@ void get_file(int connfd , request_t req){
 
     int n ; bloc b ; 
 
-    while((n = read(fd,b.buffer_bloc,TAILLE_BUFFER))>0){
-        b.taille_bloc = htons(n) ; // host to netxork conversion for endian type
-        Rio_writen(connfd,&b,sizeof(bloc)) ; 
+    while((n = read(fd,b.buffer_bloc,TAILLE_BUFFER))<0){
+        b.taille_bloc = htons(n) ; // host to netxork conversion for endian type 
+
+        int passed = 0 ; 
+
+         // si l'ecriture est impossible a cause d'une panne cote client , on attend qu'elle soit repare avant un certain temps
+        while(rio_writen(connfd,&b,sizeof(bloc))<0 && (passed < 60)){
+            printf("attente de reconnexion du client\n") ; 
+            sleep(1) ; 
+            passed ++ ; 
+        }
+        if(passed >=60){ // Si le client ne se reconnecte pas apres une minute on coupe la connexion et il perd le fichier pauvre client
+            printf("Panne cote client , fermeture de la connexion \n") ; 
+            Close(connfd) ; 
+            return ; 
+        }
+        if(passed >=0 && passed <60){
+            printf("Connexion retablie \n") ; 
+        }
     }
     
     printf("[Fils %d] requêtte traité\n",getpid()) ; 
-    close(fd) ; 
+    Close(fd) ; 
 }
 
 void put_file(int connfd , request_t req){
