@@ -59,12 +59,13 @@ int main(int argc, char **argv)
             reponse_t rep ; 
             Rio_readnb(&rio, &rep, sizeof(reponse_t));
 
-            switch(req.type){
+            switch(ntohs(req.type)){
                 case GET:
                     gestion_get(rep,req.nom,&rio);
                     break;
-                case CLOSE:
+                case CLOSE: 
                     Close(clientfd);
+                    printf("Connexion closed \n") ; 
                     exit(0);
             }
         }

@@ -1,4 +1,4 @@
-#ifdef GESTION_CLIENT_H
+#ifndef GESTION_CLIENT_H
 #define GESTION_CLIENT_H
 #include "type_req.h"
 

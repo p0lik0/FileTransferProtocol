@@ -45,7 +45,7 @@ void gestion_get(reponse_t rep , char *nom , rio_t *rio){
 
 
 int compose_requete(char * commande, char *argument , request_t *req, int n){
-        memset(&req, 0, sizeof(request_t)); // Sécurité : on met tout à zéro
+        memset(req, 0, sizeof(request_t)); // Sécurité : on met tout à zéro
 
         if(strcmp(commande, "get")==0){
             req->type = htons(GET) ; 
