@@ -1,9 +1,0 @@
-* MakeFile modifié
-
-* unsigned char -> char (dans type_req)
-
-* req.taille et rep.taille supprimes
-
-* modifie le dossier pour creation des fichiers reçus avec GET (ils doivent se retrouver dans ./client et pas dans ./server)
-
-* plusieurs demandes par connection 
