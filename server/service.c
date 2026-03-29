@@ -22,7 +22,7 @@ void echec(int connfd, int i) {
     // Pas besoin de toucher à rep.nom ou rep.contenu, ils sont déjà pleins de zéros
     
     Rio_writen(connfd, &rep, sizeof(reponse_t)); 
-    printf("[Fils %d] requette traite\n", getpid()) ; 
+    printf("[Fils %d] echec de traitement de la requette\n", getpid()) ; 
 }
 
 
@@ -33,7 +33,9 @@ void get_file(int connfd , request_t req){
 
     struct stat file_status; 
     if (stat(req.nom,&file_status)<0){
-        perror("Erreur de stat() sur le fichier");
+        perror("Erreur de stat() : ");
+        echec(connfd,-1) ;
+        return;
     }
         
     reponse_t rep ; 
@@ -46,30 +48,34 @@ void get_file(int connfd , request_t req){
             echec(connfd,-1) ; // le fichier n'existe pas
         }
         else{
-            echec(connfd,1) ; // Erreur lors de l'ouverture du fichier
+            echec(connfd,-2) ; // Erreur lors de l'ouverture du fichier
         }
         return ; 
     }
 
     // Si le fichier existe bien code de retour 0
     rep.code_retour = 0 ; 
-
-    rep.taille_contenu = htons(file_status.st_size); 
     
+    int offset = ntohs(req.offset);
+    if(offset>0){
+        // printf("rep.taille_contenu :  %ld\n", file_status.st_size-offset);
+        lseek(fd, offset, SEEK_SET);
+        rep.taille_contenu = htons(file_status.st_size-offset);
+    }
+    else{
+        // printf("rep.taille_contenu :  %ld\n", file_status.st_size);
+        rep.taille_contenu = htons(file_status.st_size);
+    }
+
     // Renvois du code de retour et de la taille du fichier
     Rio_writen(connfd,&rep,sizeof(reponse_t)) ; 
 
     int n ; bloc b ; 
 
-    int offset = ntohs(req.offset);
-    if(offset>0){
-        lseek(fd, offset, SEEK_SET);
-    }
-
     while((n = read(fd,b.buffer_bloc,TAILLE_BUFFER))>0){
         b.taille_bloc = htons(n) ; // host to netxork conversion for endian type 
         if(rio_writen(connfd,&b,sizeof(bloc))<0){
-            printf("[Fils %d] Connexion avec client interrompu\n", getpid());
+            printf("[Fils %d] Connexion avec client a été interrompu\n", getpid());
             Close(fd);
             Close(connfd);
         }
@@ -100,7 +106,10 @@ void gestion(int connfd) {
         printf("[Fils %d] Attente d'une requête...\n", getpid()) ; 
 
         // Lecture du reste la structure requette
-        Rio_readnb(&rio , &req , sizeof(request_t));
+        if(rio_readnb(&rio , &req , sizeof(request_t))<=0){
+            printf("[Fils %d] Connection avec le client a été interrompu (Panne côté client)\n", getpid()) ; 
+            return;
+        }
 
         // On analyse le type de requette et en fonction on effectue le service correspondant
         switch (ntohs(req.type))
@@ -118,8 +127,8 @@ void gestion(int connfd) {
             break ;
 
         case CLOSE:
-            printf("[Fils %d] Fermeture demandé par le client\n", getpid()) ; 
-            close(connfd) ; // s'il y'a une demande de fin de connexion du client
+            printf("[Fils %d] Connexion terminé par une demande de client\n", getpid()) ; 
+            Close(connfd) ; // s'il y'a une demande de fin de connexion du client
             return ;
 
         default:

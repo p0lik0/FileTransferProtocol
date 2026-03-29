@@ -37,11 +37,12 @@ int main(int argc, char **argv)
     printf("client connected to server OS\n"); 
     
     Rio_readinitb(&rio, clientfd);
-
+    printf("ftp > ");
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
         // Une fois que l'on reccupere la demande du client on cree la structure de la requette a envoyer
 
         /*                                                  ENVOIS DE LA REQUETTE                                                            */
+        
         int n = sscanf(buf , "%s %s", commande, argument) ; 
 
         if(n<1){
@@ -57,11 +58,24 @@ int main(int argc, char **argv)
 
             // Reponse gestion
             reponse_t rep ; 
-            Rio_readnb(&rio, &rep, sizeof(reponse_t));
+            if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
+                printf("ERREUR ! Serveur ne repond pas \n ");
+                printf("ftp > ");
+                continue;
+            }
 
             switch(ntohs(req.type)){
                 case GET:
-                    gestion_get(rep,req.nom,&rio);
+                    int err_gestion = gestion_get(rep,req.nom,req.offset,&rio);
+                    if(err_gestion==-1){
+                        printf("ECHEC! Serveur ne possede pas le fichier %s demandé \n", req.nom) ; 
+                    }
+                    else if(err_gestion==-2){
+                        printf("ECHEC! Erreur lors de l'ouverture du fichier de côté serveur \n") ; 
+                    }
+                    else if(err_gestion!=0){
+                        printf("ECHEC ! Erreur inconnu du côté de serveur \n");
+                    }
                     break;
                 case CLOSE: 
                     Close(clientfd);
@@ -78,7 +92,7 @@ int main(int argc, char **argv)
         else if(r==-2){
             printf("Commande inconnue \n") ; 
         }
-
+        printf("ftp > ");
     }
     Close(clientfd);
     exit(0);

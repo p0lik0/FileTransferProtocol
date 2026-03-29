@@ -25,7 +25,7 @@ void handler_server(){
     // wait(NULL) bloque tant qu'il reste au moins un fils en vie.
     while (wait(NULL) > 0); 
 
-    printf("[Père] Tous les fils sont enterrés. Fin du serveur.\n");
+    printf("[Père %d] Tous les fils sont enterrés. Fin du serveur.\n", getpid());
     exit(0);
 }
 
@@ -44,7 +44,13 @@ void child_main(int listenfd) {
         //printf("Boucle \n") ; 
         // TOUS les fils dorment ici. Le noyau en réveille un seul par client.
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-        printf("[Fils %d] Je traite une connexion\n", getpid());
+        if (connfd < 0) {
+            if (errno == EINTR)
+                continue;
+            perror("Accept error");
+            continue;
+        }
+        printf("[Fils %d] Connexion avec le client établi\n", getpid());
         gestion(connfd); // appelle  a la fonction de gestion des services du serveur 
         //Close(connfd); La fermeture de la connexion se fera sur demande du client
     }
