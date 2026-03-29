@@ -1,33 +1,41 @@
-.PHONY: all, clean
-
-# Disable implicit rules
-.SUFFIXES:
-
-# Keep intermediate files
-#.PRECIOUS: %.o
+.PHONY: all clean
 
 CC = gcc
 CFLAGS = -Wall -Werror
-LDFLAGS =
+LIBS = -lpthread
 
-# Note: -lnsl does not seem to work on Mac OS but will
-# probably be necessary on Solaris for linking network-related functions 
-#LIBS += -lsocket -lnsl -lrt
-LIBS += -lpthread
+SERVERDIR=./server
+CLIENTDIR=./client
+INCLDIRS = -Iserver/structures
+INCLDIRC = -Iclient/structures
 
-INCLUDE = structures/csapp.h structures/type_req.h server/service.h client/gestion_client.h
-OBJS = structures/csapp.o server/service.o client/gestion_client.o
-INCLDIR = -Istructures
+OBJSS = $(SERVERDIR)/structures/csapp.o $(SERVERDIR)/service.o
+OBJSC = $(CLIENTDIR)/structures/csapp.o $(CLIENTDIR)/gestion_client.o
 
-PROGS = ./server/serverp ./client/client 
+PROGS = $(SERVERDIR)/serverp $(CLIENTDIR)/client 
 
 all: $(PROGS)
 
-%.o: %.c $(INCLUDE)
-	$(CC) $(CFLAGS) $(INCLDIR) -c -o $@ $<
-	
-%: %.o $(OBJS)
-	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
-	
+# ---- SERVER ----
+$(SERVERDIR)/serverp.o : $(SERVERDIR)/serverp.c
+	$(CC) $(CFLAGS) $(INCLDIRS) -c -o $@ $<
+
+$(SERVERDIR)/serverp: $(SERVERDIR)/serverp.o $(OBJSS)
+	$(CC) -o $@ $^ $(LIBS)
+
+$(SERVERDIR)/%.o: $(SERVERDIR)/%.c 
+	$(CC) $(CFLAGS) $(INCLDIRS) -c -o $@ $<
+
+# ---- CLIENT ----
+$(CLIENTDIR)/client.o : $(CLIENTDIR)/client.c
+	$(CC) $(CFLAGS) $(INCLDIRC) -c -o $@ $<
+
+$(CLIENTDIR)/client: $(CLIENTDIR)/client.o $(OBJSC)
+	$(CC) -o $@ $^ $(LIBS)
+
+$(CLIENTDIR)/%.o: $(CLIENTDIR)/%.c 
+	$(CC) $(CFLAGS) $(INCLDIRC) -c -o $@ $<
+
+# ---- CLEAN ----
 clean:
-	rm -f $(PROGS) ./server/*.o ./structures/*.o ./client/*.o
+	rm -f $(PROGS) $(SERVERDIR)/*.o $(SERVERDIR)/structures/*.o $(CLIENTDIR)/*.o $(CLIENTDIR)/structures/*.o
