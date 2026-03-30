@@ -10,6 +10,8 @@
 #define PORT 2121
 #define NB_PROC 5// Taille du pool (nombre de fils)
 
+int nb_fils_occupe = 0; // nb de processus occupes \ libres
+
 
 //int tab_pid[NB_PROC] ; // table des pid des procs
 
@@ -44,23 +46,24 @@ void child_main(int listenfd) {
         //printf("Boucle \n") ; 
         // TOUS les fils dorment ici. Le noyau en réveille un seul par client.
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-        if (connfd < 0) {
-            if (errno == EINTR)
-                continue;
-            perror("Accept error");
-            continue;
-        }
+
+        nb_fils_occupe ++ ; // fils occupe
         printf("[Fils %d] Connexion avec le client établi\n", getpid());
-        gestion(connfd); // appelle  a la fonction de gestion des services du serveur 
+        nb_fils_occupe += gestion(connfd); // appelle  a la fonction de gestion des services du serveur 
         //Close(connfd); La fermeture de la connexion se fera sur demande du client
     }
 }
 
 int main(int argc, char **argv)
 {
+    int connfd_pere ; 
+    socklen_t clientlen_pere ; 
+    struct sockaddr_in clientaddr_pere ; 
+    clientlen_pere = sizeof(clientaddr_pere) ; 
 
-     // Traitant du signal de terminaison chargé de fermer propement le serveur
+    reponse_t rep_pere ; // reponse du pere en cas de processus fils non disponibles
 
+    // Traitant du signal de terminaison chargé de fermer propement le serveur
     int listenfd, port;
 
     if (argc != 1) {
@@ -82,7 +85,14 @@ int main(int argc, char **argv)
     }
     Signal(SIGINT,handler_server) ;
 
+
     while (1){
+        if(nb_fils_occupe == NB_PROC){ // Si tous les fils sont occupes
+        connfd_pere = Accept(listenfd , (SA *)&clientaddr_pere , &clientlen_pere) ; // le pere accept la connexion pour demander au fils de reesayer plus tard
+        rep_pere.code_retour = 67 ; 
+        rep_pere.taille_contenu = 0 ; 
+        Rio_writen(connfd_pere,&rep_pere,sizeof(reponse_t)) ; // envoi de la reponse
+    }
         pause() ; // attente active pour maintenir le pere en vie
     }
     exit(0);
