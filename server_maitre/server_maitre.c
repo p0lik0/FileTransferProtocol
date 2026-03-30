@@ -1,10 +1,9 @@
 /*
- * serverp.c - A pool type server
+ * servermaitre.c - A master type server
  */
 
 #include "csapp.h"
 #include "type_req.h"
-#include "service.h"
 
 #define MAX_NAME_LEN 256
 #define NB_SLAVES 5// Taille du pool (nombre de fils)
@@ -17,9 +16,10 @@ int main(){
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
     clientlen = sizeof(clientaddr);
+    int n ; 
 
     int port_slave[NB_SLAVES] = {2122 , 2123 , 2124 , 2125 , 2126} ; // buffer des ports
-    int host_slave[NB_SLAVES] = {0 , 0, 0, 0, 0} ; 
+    char host_slave[NB_SLAVES][10] = {"0" , "0", "0", "0", "0"} ; 
     int server_fd[NB_SLAVES];
     int slaves_dispo[NB_SLAVES] = {0,0,0,0,0} ; // tous sont occupés
     int last_slave = 0 ; // indice du dernier slave
@@ -35,9 +35,20 @@ int main(){
     reponse_t rep ; 
 
     listenfd = Open_listenfd(PORT_MAITRE) ; 
-    while((connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen))){
+
+    //fd_set readfds; // ensemble de tous les descripteurs
+    while(1){
+        for(int i=0 ; i<NB_SLAVES ; i++){
+            n = Read(server_fd[i], &rep, sizeof(reponse_t));
+            if(n==sizeof(reponse_t)){
+                slaves_dispo[i] = ntohs(rep.taille_contenu) ;
+            }
+        }
+
+        connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen) ; 
+
         slave_dispo_found = 0; 
-        for(int i=last_slave ; i<NB_SLAVES ; i++){
+        for(int i=last_slave+1 ; i<NB_SLAVES ; i++){
             if(slaves_dispo[i]==1){
                 last_slave = i ; 
                 slave_dispo_found = 1 ; 
@@ -46,7 +57,7 @@ int main(){
         }
 
         if(slave_dispo_found==0){
-            for(int j=0 ; j<last_slave ; j++){
+            for(int j=0 ; j<last_slave+1 ; j++){
                 if(slaves_dispo[j]==1){
                     last_slave = j ; 
                     slave_dispo_found = 1 ;
@@ -54,18 +65,22 @@ int main(){
                 }
             }
         }
-
         if(slave_dispo_found ==0){
-            rep.code_de_retour = 67 ; 
-            rep.taille_contenu = 0 ; 
+            rep.code_retour = htons(67) ; 
+            rep.taille_contenu = htons(0) ; 
+            Rio_writen(connfd, &rep, sizeof(reponse_t)); 
         }
+
         else{
-            
+            rep.code_retour = htons(42) ; 
+            rep.taille_contenu = htons(port_slave[last_slave]); 
+            Rio_writen(connfd, &rep, sizeof(reponse_t)); 
+
+            rep.code_retour = htons(42); 
+            rep.taille_contenu = atoi(host_slave[last_slave]); 
+            Rio_writen(connfd, &rep, sizeof(reponse_t)); 
         }
-
-
     }
-
 
     return 0 ; 
 }

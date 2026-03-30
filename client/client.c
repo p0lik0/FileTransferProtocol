@@ -7,9 +7,9 @@
 
 int main(int argc, char **argv)
 {
-    int clientfd, port;
+    int clientfd, port; 
     char *host, buf[MAXLINE];
-    rio_t rio;
+    rio_t rio; int err_gestion ; 
 
     char commande[50] = ""; // chaine contenant le type de requette ecrit sur l'entreee 
     char argument[100] = ""; // argument de la commande rentree
@@ -27,8 +27,42 @@ int main(int argc, char **argv)
      * to obtain the IP address.
      */
     clientfd = Open_clientfd(host, port);
-    if(clientfd < 0) printf("Erreur de connexion \n") ; 
-    
+    if(clientfd < 0) printf("Erreur de connexion \n") ;
+    else printf("Connexion au serveur maitre établi \n");
+
+    // Reponse gestion
+    reponse_t rep ; 
+    if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
+        printf("ERREUR ! Serveur ne repond pas \n ");
+        exit(0);
+    }
+
+    if(ntohs(rep.code_retour)==67){
+        printf("Connexion impossible , reesayer plus tard \n") ; 
+        Close(clientfd) ;
+        exit(0) ; 
+    }
+
+    else if(ntohs(rep.code_retour)==42){
+        int new_port = ntohs(rep.taille_contenu) ; // lecture du port du serveur esclave
+
+        if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
+        printf("ERREUR ! Serveur ne repond pas \n ");
+        exit(0);
+        }
+
+        int new_host = ntohs(rep.taille_contenu) ; // lecture du host du serveur esclave
+        char new_host_name[50]; 
+        sprintf(new_host_name,"%d", new_host) ; 
+        clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
+        printf("Client est redirigé vers %s %d\n", new_host_name, new_port);
+    }
+    else{
+        printf("Erreur cote serveur \n") ; 
+        Close(clientfd) ; 
+        exit(0) ; 
+    }
+
     /*
      * At this stage, the connection is established between the client
      * and the server OS ... but it is possible that the server application
@@ -64,9 +98,10 @@ int main(int argc, char **argv)
                 continue;
             }
 
+
             switch(ntohs(req.type)){
-                case GET:
-                    int err_gestion = gestion_get(rep,req.nom,req.offset,&rio);
+                case GET: 
+                    err_gestion = gestion_get(rep,req.nom,req.offset,&rio);
                     if(err_gestion==-1){
                         printf("ECHEC! Serveur ne possede pas le fichier %s demandé \n", req.nom) ; 
                     }
