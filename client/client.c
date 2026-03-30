@@ -64,12 +64,6 @@ int main(int argc, char **argv)
                 continue;
             }
 
-            if(rep.code_retour == 67){
-                printf("Serveur non disponible , essayez plus tard \n") ; 
-                close(clientfd) ; 
-                exit(0) ; 
-            }
-
             switch(ntohs(req.type)){
                 case GET:
                     int err_gestion = gestion_get(rep,req.nom,req.offset,&rio);

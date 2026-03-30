@@ -16,7 +16,7 @@ typedef struct request_t{
 
 typedef struct reponse_t{
     int code_retour ; // code de retour de la requette
-    ssize_t taille_contenu ; 
+    ssize_t taille_contenu ;
 } reponse_t ; 
 
 typedef struct bloc{

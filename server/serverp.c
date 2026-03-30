@@ -10,9 +10,7 @@
 #define PORT 2121
 #define NB_PROC 5// Taille du pool (nombre de fils)
 
-int nb_fils_occupe = 0; // nb de processus occupes \ libres
-
-
+int nb_fils_occupe = 0 ; 
 //int tab_pid[NB_PROC] ; // table des pid des procs
 
 /* Handler de signal de terminaison du server */
@@ -31,6 +29,14 @@ void handler_server(){
     exit(0);
 }
 
+void handler_USR1(){
+    nb_fils_occupe ++ ; 
+}
+
+void handler_USR2(){
+    nb_fils_occupe -- ; 
+}
+
 
 /* Proccedure TCP que tous les fils executent */
 void child_main(int listenfd) {
@@ -46,23 +52,16 @@ void child_main(int listenfd) {
         //printf("Boucle \n") ; 
         // TOUS les fils dorment ici. Le noyau en réveille un seul par client.
         connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-
-        nb_fils_occupe ++ ; // fils occupe
+        kill(getppid(),SIGUSR1) ; // signal de processus occupe
+        
         printf("[Fils %d] Connexion avec le client établi\n", getpid());
-        nb_fils_occupe += gestion(connfd); // appelle  a la fonction de gestion des services du serveur 
-        //Close(connfd); La fermeture de la connexion se fera sur demande du client
+        gestion(connfd); 
+        kill(getppid(),SIGUSR2) ; // une fois sortie de gestion on est free
     }
 }
 
 int main(int argc, char **argv)
 {
-    int connfd_pere ; 
-    socklen_t clientlen_pere ; 
-    struct sockaddr_in clientaddr_pere ; 
-    clientlen_pere = sizeof(clientaddr_pere) ; 
-
-    reponse_t rep_pere ; // reponse du pere en cas de processus fils non disponibles
-
     // Traitant du signal de terminaison chargé de fermer propement le serveur
     int listenfd, port;
 
@@ -83,17 +82,12 @@ int main(int argc, char **argv)
             //exit(0); 
         }
     }
+
     Signal(SIGINT,handler_server) ;
 
+    Signal(SIGUSR1,handler_USR1) ; 
+    Signal(SIGUSR2,handler_USR2) ; 
 
-    while (1){
-        if(nb_fils_occupe == NB_PROC){ // Si tous les fils sont occupes
-        connfd_pere = Accept(listenfd , (SA *)&clientaddr_pere , &clientlen_pere) ; // le pere accept la connexion pour demander au fils de reesayer plus tard
-        rep_pere.code_retour = 67 ; 
-        rep_pere.taille_contenu = 0 ; 
-        Rio_writen(connfd_pere,&rep_pere,sizeof(reponse_t)) ; // envoi de la reponse
-    }
-        pause() ; // attente active pour maintenir le pere en vie
-    }
+    pause() ; // attente active pour maintenir le pere en vie
     exit(0);
 } 
