@@ -17,7 +17,7 @@ void echec(int connfd, int i) {
     // On remplit uniquement ce qui est nécessaire
     rep.code_retour = i; 
     // rep.taille = sizeof(reponse_t); 
-    rep.taille_contenu = 0; // Déjà à 0 grâce au memset, mais c'est plus clair
+    rep.info = 0; // Déjà à 0 grâce au memset, mais c'est plus clair
 
     // Pas besoin de toucher à rep.nom ou rep.contenu, ils sont déjà pleins de zéros
     
@@ -38,7 +38,7 @@ void get_file(int connfd , request_t req){
         return;
     }
         
-    reponse_t rep ; 
+    reponse_nb_bloc rep ; 
 
     int fd = open(req.nom,O_RDONLY) ; // ouverture du fichier demande
 
@@ -58,16 +58,17 @@ void get_file(int connfd , request_t req){
     
     int offset = ntohs(req.offset);
     if(offset>0){
-        // printf("rep.taille_contenu :  %ld\n", file_status.st_size-offset);
+        // printf("rep.info :  %ld\n", file_status.st_size-offset);
         lseek(fd, offset, SEEK_SET);
-        rep.taille_contenu = htons(file_status.st_size-offset);
+        rep.valeur = ((file_status.st_size-offset) % TAILLE_BUFFER ==0)? ((file_status.st_size-offset)/TAILLE_BUFFER) : (((file_status.st_size-offset)/TAILLE_BUFFER)+1);
     }
     else{
-        // printf("rep.taille_contenu :  %ld\n", file_status.st_size);
-        rep.taille_contenu = htons(file_status.st_size);
+        printf("rep.info :  %ld\n", file_status.st_size);
+        rep.valeur = (file_status.st_size % TAILLE_BUFFER ==0)? (file_status.st_size/TAILLE_BUFFER):((file_status.st_size/TAILLE_BUFFER)+1);
     }
 
-    // Renvois du code de retour et de la taille du fichier
+    rep.valeur = htonl(rep.valeur) ; 
+    // Renvois du code de retour et du nombre de bloc que le client doit recevoir
     Rio_writen(connfd,&rep,sizeof(reponse_t)) ; 
 
     int n ; bloc b ; 
@@ -82,6 +83,7 @@ void get_file(int connfd , request_t req){
     }
     
     printf("[Fils %d] requêtte traité\n",getpid()) ; 
+    printf("nombre de bloc envoye %d \n",ntohl(rep.valeur)) ; 
     Close(fd) ; 
 }
 
@@ -108,6 +110,8 @@ void gestion(int connfd) {
         // Lecture du reste la structure requette
         if(rio_readnb(&rio , &req , sizeof(request_t))<=0){
             printf("[Fils %d] Connection avec le client a été interrompu (Panne côté client)\n", getpid()) ; 
+            printf("Fermeture de la connexion \n") ; 
+            close(connfd) ; // fermeture de la connexion
             return;
         }
 

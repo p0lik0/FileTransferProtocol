@@ -63,7 +63,7 @@ int main() {
                 n = Read(server_fd[i], &rep, sizeof(reponse_t));
                 if (n > 0) {
                     /* Mise à jour de l'état de disponibilité via le champ taille_contenu */
-                    slaves_dispo[i] = ntohs(rep.taille_contenu);
+                    slaves_dispo[i] = ntohs(rep.info);
                 } else if (n == 0) {
                     /* Gestion de la déconnexion d'un esclave */
                     Close(server_fd[i]);
@@ -76,6 +76,7 @@ int main() {
         /* Gestion des nouvelles demandes de clients */
         if (FD_ISSET(listenfd, &readfds)) {
             connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+            //printf("%d %d %d %d %d \n", slaves_dispo[0], slaves_dispo[1], slaves_dispo[2], slaves_dispo[3], slaves_dispo[4]);
 
             /* Recherche d'un esclave disponible (algorithme Round Robin) */
             slave_dispo_found = 0;
@@ -92,18 +93,19 @@ int main() {
                 /* Aucun esclave disponible : envoi code erreur 67 */
                 memset(&rep, 0, sizeof(reponse_t));
                 rep.code_retour = htons(67);
-                rep.taille_contenu = htons(0);
+                rep.info = htons(0);
                 Rio_writen(connfd, &rep, sizeof(reponse_t));
             } else {
                 /* Esclave trouvé : transmission des coordonnées (Port et IP) */
                 memset(&rep, 0, sizeof(reponse_t));
                 rep.code_retour = htons(42);
-                rep.taille_contenu = htons(port_slave[last_slave]);
+                rep.info = htons(port_slave[last_slave]);
                 Rio_writen(connfd, &rep, sizeof(reponse_t));
 
                 /* Envoi de l'adresse IP (format simplifié pour test) */
                 rep.code_retour = htons(42);
-                rep.taille_contenu = htons(0); 
+                rep.info = htons(0); 
+                //sleep(10) ; 
                 Rio_writen(connfd, &rep, sizeof(reponse_t));
             }
             

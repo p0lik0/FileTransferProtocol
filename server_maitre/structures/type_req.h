@@ -16,12 +16,17 @@ typedef struct request_t{
 
 typedef struct reponse_t{
     int code_retour ; // code de retour de la requette
-    ssize_t taille_contenu ;
+    long long int info ;
 } reponse_t ; 
 
 typedef struct bloc{
     int taille_bloc ; 
     char buffer_bloc[TAILLE_BUFFER] ; 
 } bloc ; 
+
+typedef struct reponse_nb_bloc{ // structure passe au serveur lors de la reponse pour obtenir le nombre de bloc
+    int code_retour ; 
+    int32_t valeur ; 
+} reponse_nb_bloc ; 
 
 #endif 
