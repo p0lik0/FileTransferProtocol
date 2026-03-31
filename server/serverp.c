@@ -36,7 +36,7 @@ void handler_USR1(){
     nb_fils_occupe ++ ;
     if(nb_fils_occupe==NB_PROC){ // changement d'etat indisponible
         rep.code_retour = htons(69) ; 
-        rep.taille_contenu = htons(0) ; 
+        rep.info = htons(0) ; 
     }
     Rio_writen(connfd2, &rep, sizeof(reponse_t)); 
 }
@@ -45,7 +45,7 @@ void handler_USR2(){
     nb_fils_occupe -- ; 
     if(nb_fils_occupe==NB_PROC-1){ // changement d'etat le serveur devient disponible
         rep.code_retour = htons(69) ; 
-        rep.taille_contenu = htons(1) ; 
+        rep.info = htons(1) ; 
     }
     Rio_writen(connfd2, &rep, sizeof(reponse_t)); 
 }

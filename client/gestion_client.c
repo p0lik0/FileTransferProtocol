@@ -1,7 +1,7 @@
 #include "type_req.h"
 #include "gestion_client.h"
 
-int gestion_get(reponse_t rep , char *nom , int offset, rio_t *rio){
+int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio){
     int code_retour = ntohs(rep.code_retour) ; 
     if(code_retour == 0){
         char nom_progress[100];
@@ -20,11 +20,8 @@ int gestion_get(reponse_t rep , char *nom , int offset, rio_t *rio){
             lseek(fd_file,offset,SEEK_SET); // deplacer la tete de lecture sur l offset
         }
 
-        int taille_contenu = ntohs(rep.taille_contenu) ; 
-        // printf("taille_contenu : %d\n", taille_contenu);
-
-        int nb_blocs = (taille_contenu % TAILLE_BUFFER ==0)? 
-                        (taille_contenu /TAILLE_BUFFER ): ((taille_contenu / TAILLE_BUFFER)+1); // nombre de blocs
+        // on reccupere directement la taille du contenu dans le fichier
+        int nb_blocs =  ntohl(rep.valeur) ; // nombre de blocs
 
         int count_bloc = 0 ; bloc b ; 
         // printf("nb_blocs : %d\n", nb_blocs);
@@ -44,6 +41,7 @@ int gestion_get(reponse_t rep , char *nom , int offset, rio_t *rio){
         rename(nom_progress, nom);
         printf("Transfer successful completed \n ");
         printf("File %s created \n",nom) ; 
+        printf("%d bloc recu \n", ntohl(rep.valeur)) ; 
         printf("\n");
         return 0;
     }

@@ -56,14 +56,14 @@ int main(int argc, char **argv)
     }
 
     else if(ntohs(rep.code_retour)==42){
-        int new_port = ntohs(rep.taille_contenu) ; // lecture du port du serveur esclave
+        int new_port = ntohs(rep.info) ; // lecture du port du serveur esclave
 
         if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
         printf("ERREUR ! Serveur ne repond pas \n ");
         exit(0);
         }
 
-        int new_host = ntohs(rep.taille_contenu) ; // lecture du host du serveur esclave
+        int new_host = ntohs(rep.info) ; // lecture du host du serveur esclave
         char new_host_name[50]; 
         sprintf(new_host_name,"%d", new_host) ; 
         clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
             Rio_writen(clientfd, &req, sizeof(request_t)); 
 
             // Reponse a la requette traite par la fonctiion gestion
-            reponse_t rep ; 
+            reponse_nb_bloc rep ; 
             if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
                 printf("ERREUR ! Serveur ne repond pas \n ");
                 printf("ftp > ");
