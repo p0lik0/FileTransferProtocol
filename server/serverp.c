@@ -54,7 +54,7 @@ void handler_USR2(){
 /* Proccedure TCP que tous les fils executent */
 void child_main(int listenfd) {
 
-    //signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
+    signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
 
     int connfd;
     socklen_t clientlen;
