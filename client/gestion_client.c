@@ -1,10 +1,12 @@
 #include "type_req.h"
+#include <time.h>
 #include "gestion_client.h"
 
 int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio){
     int code_retour = ntohs(rep.code_retour) ; 
     if(code_retour == 0){
         char nom_progress[100];
+        strcpy(nom_progress, "./Downloads/");
         strcpy(nom_progress, nom);
         strcat(nom_progress, ".progress");
 
@@ -24,25 +26,33 @@ int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio){
         int nb_blocs =  ntohl(rep.valeur) ; // nombre de blocs
 
         int count_bloc = 0 ; bloc b ; 
+        int somme = 0 ;
         // printf("nb_blocs : %d\n", nb_blocs);
+        clock_t start = clock();
         while(count_bloc < nb_blocs){
             Rio_readnb(rio,&b,sizeof(bloc));
             write(fd_file,b.buffer_bloc,ntohs(b.taille_bloc)) ; // ecrit le contenu du bloc avec la taille donne par le serveur
             count_bloc ++ ; 
+            somme += ntohs(b.taille_bloc);
 
             // decommenter pour avoir du temps à tapper "ctrl+C" pour immiter une panne du côté de client
-            if(count_bloc==5){
-                sleep(4);
-            }
+            // if(count_bloc==5){
+            //     sleep(4);
+            // }
 
         } // lecture du bloc
+        clock_t end = clock();
+        float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
         close(fd_file) ;
-        rename(nom_progress, nom);
+        char nom_down[100];
+        strcpy(nom_down, "./Downloads/");
+        strcat(nom_down, nom);
+        rename(nom_progress, nom_down);
         printf("Transfer successful completed \n ");
         printf("File %s created \n",nom) ; 
-        printf("%d bloc recu \n", ntohl(rep.valeur)) ; 
-        printf("\n");
+        printf("%d bytes received in %f seconds (%f Kbytes/s).\n", somme, seconds, somme/(1024*seconds)) ; 
+        // printf("\n");
         return 0;
     }
     else{
@@ -59,6 +69,7 @@ int compose_requete(char * commande, char *argument , request_t *req, int n){
                 req->type = htons(GET); 
 
                 char nom_progress[100];
+                strcpy(nom_progress, "Downloads/");
                 strcpy(nom_progress, argument);
                 strcat(nom_progress, ".progress");
 
@@ -91,10 +102,10 @@ int compose_requete(char * commande, char *argument , request_t *req, int n){
                 return -1 ; 
             }
         }
-        else if(strcmp(commande,"ls")==0){
-            req->type = htons(LS) ; 
-            return 0 ; 
-        }
+        // else if(strcmp(commande,"ls")==0){
+        //     req->type = htons(LS) ; 
+        //     return 0 ; 
+        // }
         else if(strcmp(commande , "bye")==0){
             req->type = htons(CLOSE) ; 
             return 0 ; 
@@ -103,5 +114,51 @@ int compose_requete(char * commande, char *argument , request_t *req, int n){
             //printf("Commande inconue \n") ; 
             return -2 ; 
         }
+}
 
+void redirect_to_slave(int * clientfd, rio_t * rio, char *host, int port){
+    *clientfd = Open_clientfd(host, port);
+    if(*clientfd < 0){
+        printf("Erreur de connexion \n") ;
+        exit(0) ; 
+    }
+
+    printf("Client connected to server_maitre_FTP\n"); 
+    
+    Rio_readinitb(rio, *clientfd);
+    //printf("ftp > ");
+    //sleep(15) ; 
+    reponse_t rep ; 
+    if(rio_readnb(rio, &rep, sizeof(reponse_t))<=0){
+        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
+        exit(0);
+    }
+
+    if(ntohs(rep.code_retour)==67){
+        printf("Connexion impossible , reesayer plus tard \n") ; 
+        Close(*clientfd) ;
+        exit(0) ; 
+    }
+
+    else if(ntohs(rep.code_retour)==42){
+        int new_port = ntohs(rep.info) ; // lecture du port du serveur esclave
+
+        if(rio_readnb(rio, &rep, sizeof(reponse_t))<=0){
+        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
+        exit(0);
+        }
+
+        int new_host = ntohs(rep.info) ; // lecture du host du serveur esclave
+        char new_host_name[50]; 
+        sprintf(new_host_name,"%d", new_host) ; 
+        *clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
+        printf("Client est redirigé vers %s %d\n", new_host_name, new_port);
+        printf("ftp > ");
+        Rio_readinitb(rio, *clientfd); // reinitialisation du buffer sur le nouveau canal de communication
+    }
+    else{
+        printf("Erreur cote serveur \n") ; 
+        Close(*clientfd) ; 
+        exit(0) ; 
+    }
 }

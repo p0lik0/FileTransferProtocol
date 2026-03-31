@@ -30,9 +30,11 @@ void echec(int connfd, int i) {
 void get_file(int connfd , request_t req){
 
     Signal(SIGPIPE, SIG_IGN);
-
+    char nom_down[100];
+    strcpy(nom_down, "Files/");
+    strcat(nom_down, req.nom);
     struct stat file_status; 
-    if (stat(req.nom,&file_status)<0){
+    if (stat(nom_down,&file_status)<0){
         perror("Erreur de stat() : ");
         echec(connfd,-1) ;
         return;
@@ -40,7 +42,7 @@ void get_file(int connfd , request_t req){
         
     reponse_nb_bloc rep ; 
 
-    int fd = open(req.nom,O_RDONLY) ; // ouverture du fichier demande
+    int fd = open(nom_down,O_RDONLY) ; // ouverture du fichier demande
 
     // Dans le cas ou une err./servereur se produit lors de l'ouverture du fichier
     if(fd == -1){
@@ -63,7 +65,7 @@ void get_file(int connfd , request_t req){
         rep.valeur = ((file_status.st_size-offset) % TAILLE_BUFFER ==0)? ((file_status.st_size-offset)/TAILLE_BUFFER) : (((file_status.st_size-offset)/TAILLE_BUFFER)+1);
     }
     else{
-        printf("rep.info :  %ld\n", file_status.st_size);
+        // printf("rep.info :  %ld\n", file_status.st_size);
         rep.valeur = (file_status.st_size % TAILLE_BUFFER ==0)? (file_status.st_size/TAILLE_BUFFER):((file_status.st_size/TAILLE_BUFFER)+1);
     }
 
@@ -83,7 +85,7 @@ void get_file(int connfd , request_t req){
     }
     
     printf("[Fils %d] requêtte traité\n",getpid()) ; 
-    printf("nombre de bloc envoye %d \n",ntohl(rep.valeur)) ; 
+    // printf("nombre de bloc envoye %d \n",ntohl(rep.valeur)) ; 
     Close(fd) ; 
 }
 

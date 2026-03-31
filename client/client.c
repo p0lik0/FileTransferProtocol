@@ -26,56 +26,9 @@ int main(int argc, char **argv)
      * If necessary, Open_clientfd will perform the name resolution
      * to obtain the IP address.
      */
-    clientfd = Open_clientfd(host, port);
-    if(clientfd < 0){
-        printf("Erreur de connexion \n") ;
-        exit(0) ; 
-    }
 
-    /*
-        * At this stage, the connection is established between the client
-        * and the server OS ... but it is possible that the server application
-        * has not yet called "Accept" for this connection
-    */
-    printf("client connected to server OS\n"); 
-    
-    Rio_readinitb(&rio, clientfd);
-    //printf("ftp > ");
-    //sleep(15) ; 
     // Gestion de la reponse de connexion au serveur maitre  
-    reponse_t rep ; 
-    if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
-        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
-        exit(0);
-    }
-
-    if(ntohs(rep.code_retour)==67){
-        printf("Connexion impossible , reesayer plus tard \n") ; 
-        Close(clientfd) ;
-        exit(0) ; 
-    }
-
-    else if(ntohs(rep.code_retour)==42){
-        int new_port = ntohs(rep.info) ; // lecture du port du serveur esclave
-
-        if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
-        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
-        exit(0);
-        }
-
-        int new_host = ntohs(rep.info) ; // lecture du host du serveur esclave
-        char new_host_name[50]; 
-        sprintf(new_host_name,"%d", new_host) ; 
-        clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
-        printf("Client est redirigé vers %s %d\n", new_host_name, new_port);
-        printf("ftp > ");
-        Rio_readinitb(&rio, clientfd); // reinitialisation du buffer sur le nouveau canal de communication
-    }
-    else{
-        printf("Erreur cote serveur \n") ; 
-        Close(clientfd) ; 
-        exit(0) ; 
-    }
+    redirect_to_slave(&clientfd, &rio, host, port);
 
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
         // Une fois que l'on reccupere la demande du client on cree la structure de la requette a envoyer
@@ -103,7 +56,7 @@ int main(int argc, char **argv)
             reponse_nb_bloc rep ; 
             if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
                 printf("ERREUR ! Serveur ne repond pas \n ");
-                printf("ftp > ");
+                redirect_to_slave(&clientfd, &rio, host, port);
                 continue;
             }
 

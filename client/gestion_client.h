@@ -7,5 +7,6 @@ int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio );
 // Compose la requette a envoye pour serveur
 int compose_requete(char * commande, char *argument , request_t *req, int n);
 
+void redirect_to_slave(int * clientfd, rio_t * rio, char *host , int port);
 
 #endif
