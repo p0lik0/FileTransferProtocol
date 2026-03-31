@@ -31,9 +31,9 @@ int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio){
             count_bloc ++ ; 
 
             // decommenter pour avoir du temps à tapper "ctrl+C" pour immiter une panne du côté de client
-            // if(count_bloc==5){
-            //     sleep(4);
-            // }
+            if(count_bloc==5){
+                sleep(4);
+            }
 
         } // lecture du bloc
 

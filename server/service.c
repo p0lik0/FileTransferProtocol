@@ -110,6 +110,8 @@ void gestion(int connfd) {
         // Lecture du reste la structure requette
         if(rio_readnb(&rio , &req , sizeof(request_t))<=0){
             printf("[Fils %d] Connection avec le client a été interrompu (Panne côté client)\n", getpid()) ; 
+            printf("Fermeture de la connexion \n") ; 
+            close(connfd) ; // fermeture de la connexion
             return;
         }
 

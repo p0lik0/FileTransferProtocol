@@ -40,12 +40,12 @@ int main(int argc, char **argv)
     printf("client connected to server OS\n"); 
     
     Rio_readinitb(&rio, clientfd);
-    printf("ftp > ");
-
+    //printf("ftp > ");
+    //sleep(15) ; 
     // Gestion de la reponse de connexion au serveur maitre  
     reponse_t rep ; 
     if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
-        printf("ERREUR ! Serveur ne repond pas \n ");
+        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
         exit(0);
     }
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
         int new_port = ntohs(rep.info) ; // lecture du port du serveur esclave
 
         if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
-        printf("ERREUR ! Serveur ne repond pas \n ");
+        printf("ERREUR ! Le serveur maitre ne repond pas \n ");
         exit(0);
         }
 
@@ -68,6 +68,7 @@ int main(int argc, char **argv)
         sprintf(new_host_name,"%d", new_host) ; 
         clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
         printf("Client est redirigé vers %s %d\n", new_host_name, new_port);
+        printf("ftp > ");
         Rio_readinitb(&rio, clientfd); // reinitialisation du buffer sur le nouveau canal de communication
     }
     else{
@@ -95,6 +96,10 @@ int main(int argc, char **argv)
             Rio_writen(clientfd, &req, sizeof(request_t)); 
 
             // Reponse a la requette traite par la fonctiion gestion
+            if(ntohs(req.type) == CLOSE){
+                printf("fermeture de la connexion \n") ; 
+                exit(0) ; 
+            }
             reponse_nb_bloc rep ; 
             if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
                 printf("ERREUR ! Serveur ne repond pas \n ");

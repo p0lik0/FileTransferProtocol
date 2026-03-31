@@ -20,7 +20,7 @@ int nb_fils_occupe = 0 ;
 void handler_server(){
 
     // handler redefini sur le gestionnaire par defaut
-    //signal(SIGINT, SIG_IGN); 
+    signal(SIGINT, SIG_IGN); 
 
     printf("\n[Père %d] Arrêt programmé. Signal envoyé au pool...\n", getpid());
     kill(0, SIGINT);
@@ -37,8 +37,8 @@ void handler_USR1(){
     if(nb_fils_occupe==NB_PROC){ // changement d'etat indisponible
         rep.code_retour = htons(69) ; 
         rep.info = htons(0) ; 
-    }
-    Rio_writen(connfd2, &rep, sizeof(reponse_t)); 
+        Rio_writen(connfd2, &rep, sizeof(reponse_t));
+    } 
 }
 
 void handler_USR2(){
@@ -46,15 +46,15 @@ void handler_USR2(){
     if(nb_fils_occupe==NB_PROC-1){ // changement d'etat le serveur devient disponible
         rep.code_retour = htons(69) ; 
         rep.info = htons(1) ; 
+        Rio_writen(connfd2, &rep, sizeof(reponse_t)); 
     }
-    Rio_writen(connfd2, &rep, sizeof(reponse_t)); 
 }
 
 
 /* Proccedure TCP que tous les fils executent */
 void child_main(int listenfd) {
 
-    //signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
+    signal(SIGINT, SIG_DFL); // on redefini le handler des fils pour le remttre sur celui du pere afin qu'ils oublient le handler du pere
 
     int connfd;
     socklen_t clientlen;
@@ -80,6 +80,8 @@ int main(int argc, char **argv)
 {
     Signal(SIGUSR1,handler_USR1) ; 
     Signal(SIGUSR2,handler_USR2) ; 
+
+    Signal(SIGINT,handler_server) ;
 
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
@@ -109,8 +111,9 @@ int main(int argc, char **argv)
         }
     }
 
-    Signal(SIGINT,handler_server) ;
+    //Signal(SIGINT,handler_server) ;
 
+    while(1) // tres important
     pause() ; // attente active pour maintenir le pere en vie
     exit(0);
 }

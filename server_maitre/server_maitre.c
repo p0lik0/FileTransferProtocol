@@ -76,6 +76,7 @@ int main() {
         /* Gestion des nouvelles demandes de clients */
         if (FD_ISSET(listenfd, &readfds)) {
             connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+            //printf("%d %d %d %d %d \n", slaves_dispo[0], slaves_dispo[1], slaves_dispo[2], slaves_dispo[3], slaves_dispo[4]);
 
             /* Recherche d'un esclave disponible (algorithme Round Robin) */
             slave_dispo_found = 0;
@@ -104,6 +105,7 @@ int main() {
                 /* Envoi de l'adresse IP (format simplifié pour test) */
                 rep.code_retour = htons(42);
                 rep.info = htons(0); 
+                //sleep(10) ; 
                 Rio_writen(connfd, &rep, sizeof(reponse_t));
             }
             
