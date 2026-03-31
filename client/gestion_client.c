@@ -5,6 +5,10 @@
 int gestion_get(reponse_nb_bloc rep , char *nom , int offset, rio_t *rio){
     int code_retour = ntohs(rep.code_retour) ; 
     if(code_retour == 0){
+        struct stat st = {0};
+        if (stat("./Downloads", &st) == -1) {
+            mkdir("./Downloads", 0755);
+        }
         char nom_progress[100];
         strcpy(nom_progress, "./Downloads/");
         strcpy(nom_progress, nom);
