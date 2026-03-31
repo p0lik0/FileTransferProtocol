@@ -97,6 +97,7 @@ int main(int argc, char **argv)
 
     listenfd = Open_listenfd(port);
     connfd2 = Accept(listenfd, (SA *)&clientaddr, &clientlen); // etabli la connexion avec le serveur maitre qui est un client pour lui
+    printf("Connexion avec le serveur maitre termine \n") ; 
 
     // On crée le pool de fils AVANT d'accepter des connexions
     for (int i = 0; i < NB_PROC; i++) {

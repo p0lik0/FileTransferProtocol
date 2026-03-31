@@ -27,10 +27,22 @@ int main(int argc, char **argv)
      * to obtain the IP address.
      */
     clientfd = Open_clientfd(host, port);
-    if(clientfd < 0) printf("Erreur de connexion \n") ;
-    else printf("Connexion au serveur maitre établi \n");
+    if(clientfd < 0){
+        printf("Erreur de connexion \n") ;
+        exit(0) ; 
+    }
 
-    // Reponse gestion
+    /*
+        * At this stage, the connection is established between the client
+        * and the server OS ... but it is possible that the server application
+        * has not yet called "Accept" for this connection
+    */
+    printf("client connected to server OS\n"); 
+    
+    Rio_readinitb(&rio, clientfd);
+    printf("ftp > ");
+
+    // Gestion de la reponse de connexion au serveur maitre  
     reponse_t rep ; 
     if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
         printf("ERREUR ! Serveur ne repond pas \n ");
@@ -56,6 +68,7 @@ int main(int argc, char **argv)
         sprintf(new_host_name,"%d", new_host) ; 
         clientfd = Open_clientfd(new_host_name, new_port); // nouvelle connexion etablie
         printf("Client est redirigé vers %s %d\n", new_host_name, new_port);
+        Rio_readinitb(&rio, clientfd); // reinitialisation du buffer sur le nouveau canal de communication
     }
     else{
         printf("Erreur cote serveur \n") ; 
@@ -63,15 +76,6 @@ int main(int argc, char **argv)
         exit(0) ; 
     }
 
-    /*
-     * At this stage, the connection is established between the client
-     * and the server OS ... but it is possible that the server application
-     * has not yet called "Accept" for this connection
-     */
-    printf("client connected to server OS\n"); 
-    
-    Rio_readinitb(&rio, clientfd);
-    printf("ftp > ");
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
         // Une fois que l'on reccupere la demande du client on cree la structure de la requette a envoyer
 
@@ -90,7 +94,7 @@ int main(int argc, char **argv)
             // Envoi de la requette dans le socket
             Rio_writen(clientfd, &req, sizeof(request_t)); 
 
-            // Reponse gestion
+            // Reponse a la requette traite par la fonctiion gestion
             reponse_t rep ; 
             if(rio_readnb(&rio, &rep, sizeof(reponse_t))<=0){
                 printf("ERREUR ! Serveur ne repond pas \n ");
